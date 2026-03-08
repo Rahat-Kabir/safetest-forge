@@ -1,0 +1,40 @@
+{
+  "name": "safetest-forge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "safetest-forge": "./src/cli.ts"
+  },
+  "scripts": {
+    "build": "npm run build:ui && tsc --noEmit",
+    "build:ui": "node scripts/build-ui.mjs",
+    "cli": "tsx src/cli.ts",
+    "server": "tsx src/cli.ts server",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.2.71",
+    "commander": "14.0.3",
+    "dotenv": "17.3.1",
+    "express": "5.2.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.59.0",
+    "@testing-library/react": "16.3.2",
+    "@types/express": "5.0.6",
+    "@types/node": "24.5.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/supertest": "7.2.0",
+    "esbuild": "0.27.3",
+    "jsdom": "28.1.0",
+    "supertest": "7.2.2",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}
