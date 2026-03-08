@@ -1,5 +1,11 @@
 # Technical Spec
 
+## 2026-03-09
+
+- Added a repository `LICENSE.md` using standard MIT license text as the initial open-source license document.
+- Added `CHANGELOG.md` with an initial `0.1.0` entry summarizing the current CLI, backend, UI, persistence, and testing scope.
+- Updated `README.md` open-source notes to point contributors to the license and changelog files.
+
 ## 2026-03-08
 
 - Implemented the project as a single TypeScript package under `src/` with separate internal modules for agent, runtime, policy, storage, server, trace normalization, and UI.

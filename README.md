@@ -108,6 +108,8 @@ The server writes a local session token file to `.safetest-forge/server.json` an
 
 ## Open Source Notes
 
+- The repository currently includes an MIT `LICENSE.md`.
+- Release history is tracked in `CHANGELOG.md`.
 - `.env` is local-only and should never be committed.
 - Python local-dev artifacts such as `.venv/`, `venv/`, and `.pytest_cache/` are ignored.
 - `fake` mode is the default contributor path and does not require paid API access.

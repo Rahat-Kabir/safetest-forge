@@ -1,5 +1,12 @@
 # Build Progress
 
+## 2026-03-09
+
+- Documentation and repository metadata: completed
+  - Added `LICENSE.md` with MIT license text
+  - Added `CHANGELOG.md` with an initial `0.1.0` release summary
+  - Updated `README.md` to reference the license and changelog for open-source consumers
+
 ## 2026-03-08
 
 - Phase 1, CLI skeleton: completed
