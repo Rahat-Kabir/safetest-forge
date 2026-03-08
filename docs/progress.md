@@ -6,6 +6,7 @@
   - Added `LICENSE.md` with MIT license text
   - Added `CHANGELOG.md` with an initial `0.1.0` release summary
   - Updated `README.md` to reference the license and changelog for open-source consumers
+  - Added a `Releases` section to `README.md` pointing users to GitHub Releases and `CHANGELOG.md`
 
 ## 2026-03-08
 

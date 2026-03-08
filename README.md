@@ -94,6 +94,12 @@ The server writes a local session token file to `.safetest-forge/server.json` an
 - `POST /api/runs/:runId/cancel`
 - `POST /api/runs/:runId/rewind`
 
+## Releases
+
+Release notes are published on the GitHub Releases page.
+
+In-repo release history is tracked in `CHANGELOG.md`.
+
 ## Current Capabilities
 
 - CLI-first V1 flow with `run`, `cancel`, `report`, `trace`, and `rewind`

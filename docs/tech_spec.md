@@ -5,6 +5,7 @@
 - Added a repository `LICENSE.md` using standard MIT license text as the initial open-source license document.
 - Added `CHANGELOG.md` with an initial `0.1.0` entry summarizing the current CLI, backend, UI, persistence, and testing scope.
 - Updated `README.md` open-source notes to point contributors to the license and changelog files.
+- Added a dedicated `Releases` section to `README.md` so the published GitHub release flow is discoverable from the repository homepage.
 
 ## 2026-03-08
 
