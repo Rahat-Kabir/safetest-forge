@@ -67,6 +67,8 @@ program
 program
   .command("report")
   .requiredOption("--run <runId>", "Run ID")
+  .option("--coverage", "Print only the coverage section")
+  .option("--cases", "Print only the per-test case results")
   .action(async (options) => {
     const runService = new RunService();
     const report = await runService.getReport(options.run);
@@ -75,6 +77,23 @@ program
       process.exitCode = 1;
       return;
     }
+
+    if (options.coverage) {
+      const coverage = report.test_run.coverage;
+      if (!coverage) {
+        console.error("No coverage data was recorded for this run");
+        process.exitCode = 1;
+        return;
+      }
+      console.log(JSON.stringify(coverage, null, 2));
+      return;
+    }
+
+    if (options.cases) {
+      console.log(JSON.stringify(report.test_run.cases ?? [], null, 2));
+      return;
+    }
+
     console.log(JSON.stringify(report, null, 2));
   });
 

@@ -123,6 +123,31 @@ describe("RunService integration", () => {
     expect(report.failure_code).toBe("cancelled");
   });
 
+  it("captures per-test cases in the final report and trace", async () => {
+    const runService = new RunService();
+    const started = await runService.startRun({
+      repoPath: path.resolve("tests/fixtures/simple-package"),
+      agentMode: "fake"
+    });
+    const report = await started.completion;
+    expect(report.status).toBe("passed");
+    expect(report.test_run.cases.length).toBeGreaterThan(0);
+    expect(
+      report.test_run.cases.every((testCase) => typeof testCase.nodeid === "string" && testCase.nodeid.length > 0)
+    ).toBe(true);
+    expect(
+      report.test_run.cases.every((testCase) => testCase.outcome === "passed")
+    ).toBe(true);
+    expect(
+      report.test_run.cases.every((testCase) => typeof testCase.duration_ms === "number")
+    ).toBe(true);
+
+    const events = await runService.getTrace(started.runId);
+    const caseEvents = events.filter((event) => event.type === "test_case_result");
+    expect(caseEvents.length).toBe(report.test_run.cases.length);
+    expect(caseEvents[0]?.data.outcome).toBe("passed");
+  });
+
   it("rewinds generated fake-agent files", async () => {
     const runService = new RunService();
     const repoPath = path.resolve("tests/fixtures/simple-package");

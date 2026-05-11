@@ -1,5 +1,26 @@
 # Technical Spec
 
+## 2026-05-11
+
+- Extended `TestRunSummary` with `cases: TestCaseResult[]` and an optional
+  `coverage: CoverageSummary`. Older reports without the field are tolerated
+  because the runtime always emits an empty array.
+- The Python runtime adapter probes once per process for the optional
+  `pytest-json-report` and `pytest-cov` plugins via a short `python -c "import …"`
+  subprocess. The result is cached. `runPytest` adds the matching CLI flags
+  only when the relevant plugin is present, writes both artifacts to a
+  per-invocation temp directory, parses them, and deletes the directory before
+  returning.
+- Coverage scope is derived from the analyzer's detected `packageRoots`,
+  converted to repo-relative POSIX paths, and passed as one `--cov=<path>` flag
+  per root. If no roots are detected the runtime falls back to `--cov=.`.
+- The run service emits two new normalized trace events: one
+  `test_case_result` per case and a single `coverage_summary` when coverage is
+  available, both consumed by the React UI for the new Report Panel sections.
+- `pytest-json-report` and `pytest-cov` are intentionally not added to project
+  dependencies (this is a TypeScript project). Both remain optional Python
+  packages that contributors install in their own environment.
+
 ## 2026-03-09
 
 - Added a repository `LICENSE.md` using standard MIT license text as the initial open-source license document.

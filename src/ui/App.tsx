@@ -6,13 +6,40 @@ type TraceEvent = {
   data: Record<string, unknown>;
 };
 
+type TestCaseResult = {
+  nodeid: string;
+  outcome: string;
+  duration_ms: number;
+  file: string | null;
+  message: string | null;
+};
+
+type CoverageFileSummary = {
+  file: string;
+  lines_covered: number;
+  lines_total: number;
+  percent: number;
+};
+
+type CoverageSummary = {
+  source: string;
+  overall_percent: number;
+  files: CoverageFileSummary[];
+};
+
 type FinalReport = {
   status: string;
   generated_tests: Array<{ path: string }>;
   blocked_operations: Array<{ tool: string; reason: string }>;
   cost: { total_usd: number };
   repair: { attempted: boolean; rounds_used: number; stopped_reason: string | null };
-  test_run: { passed: number; failed: number; errors: number };
+  test_run: {
+    passed: number;
+    failed: number;
+    errors: number;
+    cases?: TestCaseResult[];
+    coverage?: CoverageSummary | null;
+  };
 };
 
 type AppProps = {
@@ -67,7 +94,17 @@ function IconTerminal(): React.JSX.Element {
 
 /* ─── Trace event categorization ─── */
 
-type TraceBadgeCategory = "run" | "tool" | "text" | "file" | "denied" | "checkpoint" | "agent" | "progress";
+type TraceBadgeCategory =
+  | "run"
+  | "tool"
+  | "text"
+  | "file"
+  | "denied"
+  | "checkpoint"
+  | "agent"
+  | "progress"
+  | "case"
+  | "coverage";
 
 function categorizeEvent(type: string): TraceBadgeCategory {
   switch (type) {
@@ -93,6 +130,10 @@ function categorizeEvent(type: string): TraceBadgeCategory {
     case "subagent_started":
     case "subagent_finished":
       return "agent";
+    case "test_case_result":
+      return "case";
+    case "coverage_summary":
+      return "coverage";
     case "task_progress":
     default:
       return "progress";
@@ -115,6 +156,8 @@ function badgeLabel(type: string): string {
     rewind_available: "rewind",
     subagent_started: "agent",
     subagent_finished: "agent",
+    test_case_result: "case",
+    coverage_summary: "coverage",
     task_progress: "progress"
   };
   return map[type] ?? type;
@@ -432,6 +475,63 @@ export function App({ apiBase = "/api", sessionToken = "" }: AppProps): React.JS
                   <span className="report-detail-label">Cost</span>
                   <span className="report-detail-value">${report.cost.total_usd.toFixed(4)}</span>
                 </div>
+                {report.test_run.coverage ? (
+                  <div className="coverage-section">
+                    <div className="coverage-header">
+                      <span className="coverage-label">Coverage</span>
+                      <span className="coverage-percent">
+                        {report.test_run.coverage.overall_percent.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="coverage-bar" aria-hidden="true">
+                      <div
+                        className="coverage-bar-fill"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.max(0, report.test_run.coverage.overall_percent)
+                          )}%`
+                        }}
+                      />
+                    </div>
+                    {report.test_run.coverage.files.length > 0 && (
+                      <ul className="coverage-list">
+                        {report.test_run.coverage.files.slice(0, 8).map((entry) => (
+                          <li key={entry.file} className="coverage-row">
+                            <span className="coverage-row-file">{entry.file}</span>
+                            <span className="coverage-row-percent">
+                              {entry.percent.toFixed(1)}%
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : null}
+                {report.test_run.cases && report.test_run.cases.length > 0 ? (
+                  <div className="cases-section">
+                    <div className="cases-header">
+                      <span className="cases-label">Test cases</span>
+                      <span className="cases-count">{report.test_run.cases.length}</span>
+                    </div>
+                    <ul className="cases-list">
+                      {report.test_run.cases.map((testCase) => (
+                        <li key={testCase.nodeid} className="case-row">
+                          <span
+                            className={`case-outcome case-outcome--${testCase.outcome}`}
+                            title={testCase.outcome}
+                          >
+                            {testCase.outcome}
+                          </span>
+                          <span className="case-node" title={testCase.nodeid}>
+                            {testCase.nodeid}
+                          </span>
+                          <span className="case-duration">{testCase.duration_ms}ms</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </>
             ) : (
               <div className="card-body">
@@ -547,6 +647,21 @@ function formatTracePreview(event: TraceEvent): string {
   }
   if (event.type === "task_progress") {
     return String(event.data.phase ?? event.data.status ?? "progress");
+  }
+  if (event.type === "test_case_result") {
+    const nodeid = String(event.data.nodeid ?? "?");
+    const outcome = String(event.data.outcome ?? "?");
+    const duration =
+      typeof event.data.duration_ms === "number" ? `${event.data.duration_ms}ms` : "";
+    return `${outcome.toUpperCase()} ${nodeid} ${duration}`.trim();
+  }
+  if (event.type === "coverage_summary") {
+    const percent =
+      typeof event.data.overall_percent === "number"
+        ? `${(event.data.overall_percent as number).toFixed(1)}%`
+        : "n/a";
+    const files = Array.isArray(event.data.files) ? event.data.files.length : 0;
+    return `overall ${percent} across ${files} files`;
   }
   return truncate(JSON.stringify(event.data), 80);
 }

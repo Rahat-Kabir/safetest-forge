@@ -67,9 +67,22 @@ Other commands:
 ```bash
 npm run cli -- cancel --run <run-id>
 npm run cli -- report --run <run-id>
+npm run cli -- report --run <run-id> --cases
+npm run cli -- report --run <run-id> --coverage
 npm run cli -- trace --run <run-id>
 npm run cli -- rewind --run <run-id> [--checkpoint <user-message-uuid>]
 ```
+
+To enable richer test telemetry, install the optional Python plugins on your
+local environment:
+
+```bash
+pip install pytest-json-report   # populates report.test_run.cases
+pip install pytest-cov           # populates report.test_run.coverage
+```
+
+Both are optional. When absent, runs still complete normally; the corresponding
+sections are simply empty.
 
 If `npm run cli -- ...` does not forward flags correctly in your shell, use the direct form instead:
 
@@ -108,6 +121,8 @@ In-repo release history is tracked in `CHANGELOG.md`.
 - Claude Agent SDK integration with streaming events, structured output, checkpoint capture, and subagent definitions
 - Deterministic fake-agent path for unit, integration, and CLI smoke tests
 - Local `pytest` execution with stdout/stderr capture, timeout classification, cancellation polling, and one repair round
+- Per-test outcome capture (`cases[]` on the report; `test_case_result` trace events) when `pytest-json-report` is installed
+- Optional line coverage capture (`coverage` block on the report; `coverage_summary` trace event; UI coverage bar) when `pytest-cov` is installed
 - Live-run cancellation propagation through the run-level abort controller, including persisted cancel requests observed across processes
 - Flat-file persistence under `.safetest-forge/` for runs, traces, reports, checkpoints, and fake rewind snapshots
 - React UI with 2-column layout, color-coded trace badges, phase progress bar, click-to-copy run ID, stat grid report panel, and REST + SSE wiring
