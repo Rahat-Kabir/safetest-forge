@@ -4,6 +4,7 @@ import path from "node:path";
 
 import {
   buildAllowedWriteRoots,
+  detectPythonTooling,
   detectPytestPlugins,
   resolveGeneratedTestPath,
   runPytest,
@@ -36,6 +37,15 @@ describe("runtime detection", () => {
   it("advertises only test write roots", () => {
     const repoPath = path.resolve("tests/fixtures/simple-package");
     expect(buildAllowedWriteRoots(repoPath)).toEqual([path.join(repoPath, "tests")]);
+  });
+
+  it("detectPythonTooling returns a stable shape", () => {
+    const tooling = detectPythonTooling(true);
+    expect(tooling).toMatchObject({
+      pythonAvailable: expect.any(Boolean),
+      pytestAvailable: expect.any(Boolean),
+      pythonCommand: expect.anything()
+    });
   });
 });
 

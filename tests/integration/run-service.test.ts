@@ -81,6 +81,7 @@ describe("RunService integration", () => {
       agentMode: "fake",
       timeoutMs: 3_000
     });
+    await new Promise((resolve) => setTimeout(resolve, 120));
     await runService.cancelRun(started.runId);
     const report = await started.completion;
     expect(report.status).toBe("cancelled");

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type TraceEvent = {
   ts: string;
@@ -43,6 +43,19 @@ type FinalReport = {
 };
 
 type AgentMode = "fake" | "claude";
+
+type PreflightCheck = {
+  id: string;
+  name: string;
+  status: "pass" | "warn" | "fail";
+  message?: string;
+};
+
+type PreflightResult = {
+  ok: boolean;
+  agentMode: string;
+  checks: PreflightCheck[];
+};
 
 type AppProps = {
   apiBase?: string;
@@ -217,6 +230,27 @@ export function App({ apiBase = "/api", sessionToken = "" }: AppProps): React.JS
   const [rewoundFiles, setRewoundFiles] = useState<string[]>([]);
   const traceEndRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [preflight, setPreflight] = useState<PreflightResult | null>(null);
+  const [preflightLoading, setPreflightLoading] = useState(false);
+  const [preflightError, setPreflightError] = useState("");
+  const preflightReqId = useRef(0);
+
+  const fetchPreflight = useCallback(async (): Promise<PreflightResult> => {
+    const params = new URLSearchParams();
+    params.set("repoPath", repoPath.trim());
+    if (targetPath.trim()) {
+      params.set("targetPath", targetPath.trim());
+    }
+    params.set("agentMode", agentMode);
+    const response = await fetch(`${apiBase}/preflight?${params.toString()}`, {
+      headers: { "x-session-token": sessionToken }
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? `Preflight failed (${response.status})`);
+    }
+    return (await response.json()) as PreflightResult;
+  }, [agentMode, apiBase, repoPath, sessionToken, targetPath]);
 
   useEffect(() => {
     if (!runId) return;
@@ -270,11 +304,63 @@ export function App({ apiBase = "/api", sessionToken = "" }: AppProps): React.JS
   const phase = useMemo(() => currentPhase(events), [events]);
   const isRunning = status === "running" || status === "starting";
 
+  useEffect(() => {
+    if (isRunning) {
+      return;
+    }
+    const myId = ++preflightReqId.current;
+    const handle = window.setTimeout(() => {
+      void (async () => {
+        setPreflightLoading(true);
+        setPreflightError("");
+        try {
+          const data = await fetchPreflight();
+          if (preflightReqId.current !== myId) {
+            return;
+          }
+          setPreflight(data);
+        } catch (err) {
+          if (preflightReqId.current !== myId) {
+            return;
+          }
+          setPreflight(null);
+          setPreflightError(err instanceof Error ? err.message : "Preflight failed");
+        } finally {
+          if (preflightReqId.current === myId) {
+            setPreflightLoading(false);
+          }
+        }
+      })();
+    }, 400);
+    return () => {
+      window.clearTimeout(handle);
+    };
+  }, [agentMode, fetchPreflight, isRunning, repoPath, targetPath]);
+
   async function startRun(): Promise<void> {
     setError("");
+    setPreflightError("");
     setEvents([]);
     setReport(null);
     setRewoundFiles([]);
+
+    let pf: PreflightResult;
+    try {
+      pf = await fetchPreflight();
+    } catch (err) {
+      setPreflight(null);
+      setStatus("error");
+      setPreflightError(err instanceof Error ? err.message : "Preflight request failed");
+      setError("Could not verify environment.");
+      return;
+    }
+    setPreflight(pf);
+    if (!pf.ok) {
+      setStatus("error");
+      setError("Preflight failed. Fix the issues below before starting.");
+      return;
+    }
+
     setStatus("starting");
     const response = await fetch(`${apiBase}/runs`, {
       method: "POST",
@@ -401,6 +487,34 @@ export function App({ apiBase = "/api", sessionToken = "" }: AppProps): React.JS
                   <option value="fake">Fake (no API key, deterministic)</option>
                   <option value="claude">Claude (uses ANTHROPIC_API_KEY)</option>
                 </select>
+              </div>
+              <div className="preflight-section" aria-live="polite">
+                <div className="preflight-header">
+                  <span className="preflight-title">Preflight</span>
+                  {preflightLoading ? (
+                    <span className="preflight-loading">
+                      <IconSpinner /> Checking…
+                    </span>
+                  ) : null}
+                </div>
+                {preflightError ? (
+                  <div className="error-msg preflight-error">{preflightError}</div>
+                ) : null}
+                {preflight ? (
+                  <ul className="preflight-list">
+                    {preflight.checks.map((check) => (
+                      <li key={check.id} className="preflight-row">
+                        <span className={`preflight-pill preflight-pill--${check.status}`}>{check.status}</span>
+                        <span className="preflight-name">{check.name}</span>
+                        {check.message ? (
+                          <span className="preflight-msg" title={check.message}>
+                            {check.message}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
               <div className="form-actions">
                 <button

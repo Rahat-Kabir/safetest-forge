@@ -17,9 +17,18 @@ function installEventSourceStub(): void {
   };
 }
 
+function preflightOkResponse(agentMode = "fake", checks: unknown[] = []) {
+  return { ok: true, json: async () => ({ ok: true, agentMode, checks }) };
+}
+
 describe("App", () => {
   it("renders the major panels", () => {
-    installFetchMock(async () => ({ ok: false, json: async () => ({ error: "ignored" }) }));
+    installFetchMock(async (input) => {
+      if (String(input).includes("/preflight")) {
+        return preflightOkResponse();
+      }
+      return { ok: false, json: async () => ({ error: "ignored" }) };
+    });
     installEventSourceStub();
     render(<App apiBase="/api" sessionToken="token" />);
     expect(screen.getByText("Run Panel")).toBeTruthy();
@@ -32,7 +41,12 @@ describe("App", () => {
   });
 
   it("toggles trace mode", () => {
-    installFetchMock(async () => ({ ok: false, json: async () => ({ error: "ignored" }) }));
+    installFetchMock(async (input) => {
+      if (String(input).includes("/preflight")) {
+        return preflightOkResponse();
+      }
+      return { ok: false, json: async () => ({ error: "ignored" }) };
+    });
     installEventSourceStub();
     render(<App apiBase="/api" sessionToken="token" />);
     const toggle = screen.getByRole("button", { name: "Show all" });
@@ -43,6 +57,9 @@ describe("App", () => {
   it("sends the selected agent mode when starting a run", async () => {
     let runInit: RequestInit | undefined;
     installFetchMock(async (input, init) => {
+      if (String(input).includes("/preflight")) {
+        return preflightOkResponse("claude");
+      }
       if (String(input).endsWith("/runs")) {
         runInit = init;
         return { ok: true, json: async () => ({ runId: "run-123" }) };
@@ -109,6 +126,9 @@ describe("App", () => {
 
     installFetchMock(async (input) => {
       const url = String(input);
+      if (url.includes("/preflight")) {
+        return preflightOkResponse();
+      }
       if (url.endsWith("/runs")) {
         return { ok: true, json: async () => ({ runId: "run-123" }) };
       }
@@ -135,5 +155,82 @@ describe("App", () => {
     expect(screen.getByText("tests/test_calculator.py::test_add")).toBeTruthy();
     expect(screen.getByText("tests/test_calculator.py::test_divide")).toBeTruthy();
     expect(screen.getByText("src/calculator.py")).toBeTruthy();
+  });
+
+  it("does not POST /api/runs when preflight returns ok false", async () => {
+    let postRuns = 0;
+    installFetchMock(async (input, init) => {
+      const url = String(input);
+      if (url.includes("/preflight")) {
+        return {
+          ok: true,
+          json: async () => ({
+            ok: false,
+            agentMode: "fake",
+            checks: [{ id: "pytest", name: "pytest", status: "fail", message: "not on PATH" }]
+          })
+        };
+      }
+      if (url.endsWith("/runs") && init?.method === "POST") {
+        postRuns += 1;
+        return { ok: true, json: async () => ({ runId: "run-123" }) };
+      }
+      return { ok: false, json: async () => ({ error: "ignored" }) };
+    });
+    installEventSourceStub();
+
+    render(<App apiBase="/api" sessionToken="token" />);
+    fireEvent.change(screen.getByLabelText("Repository path"), {
+      target: { value: "/repo" }
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Start run/i }));
+    });
+
+    expect(postRuns).toBe(0);
+    expect(screen.getByText("Preflight failed. Fix the issues below before starting.")).toBeTruthy();
+  });
+
+  it("sends session token and query params to preflight after debounce", async () => {
+    const calls: Array<{ url: string; headers?: HeadersInit }> = [];
+    installFetchMock(async (input, init) => {
+      calls.push({ url: String(input), headers: init?.headers as HeadersInit });
+      if (String(input).includes("/preflight")) {
+        return preflightOkResponse("fake", [
+          { id: "pytest_cov", name: "pytest-cov", status: "warn", message: "optional" }
+        ]);
+      }
+      return { ok: false, json: async () => ({ error: "ignored" }) };
+    });
+    installEventSourceStub();
+
+    render(<App apiBase="/api" sessionToken="secret-token" />);
+    fireEvent.change(screen.getByLabelText("Repository path"), {
+      target: { value: "C:\\my\\repo" }
+    });
+    fireEvent.change(screen.getByLabelText("Target path"), {
+      target: { value: "src/a.py" }
+    });
+
+    await waitFor(
+      () => {
+        expect(calls.some((c) => c.url.includes("/preflight"))).toBe(true);
+      },
+      { timeout: 3000, interval: 50 }
+    );
+
+    const preflightCall = calls.find((c) => c.url.includes("/preflight"));
+    expect(preflightCall?.url).toContain("repoPath=");
+    expect(preflightCall?.url).toContain("targetPath=");
+    expect(preflightCall?.url).toContain("agentMode=fake");
+    const headers = preflightCall?.headers as Record<string, string> | undefined;
+    const token =
+      headers?.["x-session-token"] ??
+      (typeof Headers !== "undefined" && preflightCall?.headers instanceof Headers
+        ? preflightCall.headers.get("x-session-token")
+        : undefined);
+    expect(token).toBe("secret-token");
+    expect(screen.getByText("pytest-cov")).toBeTruthy();
   });
 });

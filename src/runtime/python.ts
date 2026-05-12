@@ -259,6 +259,55 @@ export interface PytestPluginAvailability {
   cov: boolean;
 }
 
+export interface PythonTooling {
+  /** First `python` / `python3` on PATH that runs, or null if none. */
+  pythonCommand: string | null;
+  pythonAvailable: boolean;
+  /** `pytest` executable on PATH (matches `runPytest` spawn). */
+  pytestAvailable: boolean;
+}
+
+let cachedPythonTooling: PythonTooling | null = null;
+
+export function detectPythonTooling(force = false): PythonTooling {
+  if (!force && cachedPythonTooling) {
+    return cachedPythonTooling;
+  }
+
+  const candidates = process.platform === "win32" ? ["python", "python3"] : ["python3", "python"];
+  let pythonCommand: string | null = null;
+  for (const candidate of candidates) {
+    try {
+      const result = spawnSync(candidate, ["-c", "import sys"], {
+        stdio: "ignore"
+      });
+      if (result.status === 0) {
+        pythonCommand = candidate;
+        break;
+      }
+    } catch {
+      // Try the next candidate.
+    }
+  }
+
+  let pytestAvailable = false;
+  try {
+    const pytestResult = spawnSync("pytest", ["--version"], {
+      stdio: "ignore"
+    });
+    pytestAvailable = pytestResult.status === 0;
+  } catch {
+    pytestAvailable = false;
+  }
+
+  cachedPythonTooling = {
+    pythonCommand,
+    pythonAvailable: pythonCommand !== null,
+    pytestAvailable
+  };
+  return cachedPythonTooling;
+}
+
 let cachedPluginAvailability: PytestPluginAvailability | null = null;
 
 export function detectPytestPlugins(force = false): PytestPluginAvailability {

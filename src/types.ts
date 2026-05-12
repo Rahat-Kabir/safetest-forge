@@ -1,5 +1,26 @@
 export type AgentMode = "claude" | "fake";
 
+export type PreflightCheckStatus = "pass" | "warn" | "fail";
+
+export interface PreflightCheck {
+  id: string;
+  name: string;
+  status: PreflightCheckStatus;
+  message?: string;
+}
+
+export interface PreflightResult {
+  ok: boolean;
+  agentMode: AgentMode;
+  checks: PreflightCheck[];
+}
+
+export interface PreflightRequest {
+  repoPath: string;
+  targetPath?: string;
+  agentMode?: AgentMode;
+}
+
 export type RunStatus =
   | "running"
   | "cancelling"

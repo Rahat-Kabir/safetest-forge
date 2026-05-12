@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 export function nowIso(): string {
   return new Date().toISOString();
@@ -46,7 +47,10 @@ export async function readJsonFile<T>(filePath: string, fallback?: T): Promise<T
 
 export async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
   await ensureDir(path.dirname(filePath));
-  await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  const payload = `${JSON.stringify(value, null, 2)}\n`;
+  const tempPath = `${filePath}.${randomUUID()}.tmp`;
+  await fs.writeFile(tempPath, payload, "utf8");
+  await fs.rename(tempPath, filePath);
 }
 
 export function parseInteger(value: string | undefined, fallback: number): number {

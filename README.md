@@ -104,9 +104,10 @@ Start the local backend on `127.0.0.1:4317`:
 npm run server
 ```
 
-The UI Run Panel lets you choose `fake` or `claude` mode per run, overriding the environment default for that request.
+The UI Run Panel lets you choose `fake` or `claude` mode per run, overriding the environment default for that request. It also runs **preflight** checks (repo path, target, Python, `pytest`, agent/API key, optional plugins) on a short debounce and again immediately before **Start run**.
 
 The server writes a local session token file to `.safetest-forge/server.json` and serves:
+- `GET /api/preflight` (requires `x-session-token`; query: `repoPath`, optional `targetPath`, optional `agentMode`)
 - `POST /api/runs`
 - `GET /api/runs/:runId`
 - `GET /api/runs/:runId/report`
@@ -132,7 +133,7 @@ In-repo release history is tracked in `CHANGELOG.md`.
 - Optional line coverage capture (`coverage` block on the report; `coverage_summary` trace event; UI coverage bar) when `pytest-cov` is installed
 - Live-run cancellation propagation through the run-level abort controller, including persisted cancel requests observed across processes
 - Flat-file persistence under `.safetest-forge/` for runs, traces, reports, checkpoints, and fake rewind snapshots
-- React UI with 2-column layout, color-coded trace badges, phase progress bar, click-to-copy run ID, stat grid report panel, and REST + SSE wiring
+- React UI with 2-column layout, color-coded trace badges, phase progress bar, click-to-copy run ID, stat grid report panel, REST + SSE wiring, and a preflight checklist in the Run Panel
 
 ## Open Source Notes
 

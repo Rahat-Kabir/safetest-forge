@@ -63,6 +63,26 @@ export function createApp(runService: RunService, sessionToken: string): express
     });
   });
 
+  app.get("/api/preflight", requireToken, async (request, response) => {
+    try {
+      const repoPath = typeof request.query.repoPath === "string" ? request.query.repoPath : "";
+      const targetPath =
+        typeof request.query.targetPath === "string" && request.query.targetPath.trim() !== ""
+          ? request.query.targetPath
+          : undefined;
+      const agentMode =
+        typeof request.query.agentMode === "string" && request.query.agentMode.trim() !== ""
+          ? request.query.agentMode
+          : undefined;
+      const result = await runService.preflight({ repoPath, targetPath, agentMode });
+      response.json(result);
+    } catch (error) {
+      response
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   app.post("/api/runs", requireToken, async (request, response) => {
     try {
       const started = await runService.startRun(request.body);

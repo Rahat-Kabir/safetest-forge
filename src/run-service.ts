@@ -14,6 +14,7 @@ import type { AgentClient } from "./agent/types.js";
 import {
   buildRunContext,
   classifyFailure,
+  detectPythonTooling,
   detectPytestPlugins,
   ensureTestRoot,
   runPytest,
@@ -21,9 +22,12 @@ import {
 } from "./runtime/python.js";
 import { RunStore } from "./storage/run-store.js";
 import type {
+  AgentMode,
   AnalyzedModule,
   FinalReport,
   GeneratedTest,
+  PreflightCheck,
+  PreflightResult,
   RewindResult,
   RunContext,
   RunRecord,
@@ -60,6 +64,172 @@ export class RunService {
 
   async initialize(): Promise<void> {
     await this.store.initialize();
+  }
+
+  /**
+   * Read-only checks before starting a run: repo layout, tooling, agent mode, optional plugins.
+   * Does not write to the run store or mutate the repository.
+   */
+  async preflight(input: {
+    repoPath: string;
+    targetPath?: string;
+    /** Raw query value; omit to use `getAgentMode()`. Invalid values add a failing `agent_mode` check. */
+    agentMode?: string;
+  }): Promise<PreflightResult> {
+    const checks: PreflightCheck[] = [];
+    const repoPath = input.repoPath?.trim() ?? "";
+    const targetPath = input.targetPath?.trim() || undefined;
+
+    const rawMode = input.agentMode?.trim();
+    let effectiveAgent: AgentMode = getAgentMode();
+    let agentModeInvalid = false;
+    if (rawMode !== undefined && rawMode !== "") {
+      if (rawMode === "claude" || rawMode === "fake") {
+        effectiveAgent = rawMode;
+      } else {
+        agentModeInvalid = true;
+      }
+    }
+
+    checks.push({
+      id: "agent_mode",
+      name: "Agent mode",
+      status: agentModeInvalid ? "fail" : "pass",
+      message: agentModeInvalid
+        ? `Invalid agent mode: ${rawMode}. Use "fake" or "claude".`
+        : `Using ${effectiveAgent}${rawMode === undefined || rawMode === "" ? " (default from env or request)" : ""}.`
+    });
+
+    if (!repoPath) {
+      checks.push({
+        id: "repo_path",
+        name: "Repository path",
+        status: "fail",
+        message: "Repository path is required."
+      });
+    } else {
+      const validation = await validateRepository(repoPath, targetPath);
+    if (!validation.analysis && validation.failure) {
+      const { code, message } = validation.failure;
+      if (code === "invalid_repo_path") {
+        checks.push({ id: "repo_path", name: "Repository path", status: "fail", message });
+      } else if (code === "invalid_target_path") {
+        checks.push({ id: "repo_path", name: "Repository path", status: "pass", message: "Repository exists." });
+        checks.push({ id: "target_path", name: "Target path", status: "fail", message });
+      } else {
+        checks.push({
+          id: "repo_path",
+          name: "Repository path",
+          status: "pass",
+          message: "Repository exists."
+        });
+        if (targetPath) {
+          checks.push({
+            id: "target_path",
+            name: "Target path",
+            status: "pass",
+            message: "Target path is inside the repository."
+          });
+        } else {
+          checks.push({
+            id: "target_path",
+            name: "Target path",
+            status: "pass",
+            message: "Not set (whole repository scope)."
+          });
+        }
+        checks.push({
+          id: "repository",
+          name: "Python project layout",
+          status: "fail",
+          message
+        });
+      }
+    } else {
+      checks.push({
+        id: "repo_path",
+        name: "Repository path",
+        status: "pass",
+        message: "Repository exists and is a directory."
+      });
+      if (targetPath) {
+        checks.push({
+          id: "target_path",
+          name: "Target path",
+          status: "pass",
+          message: "Target path exists inside the repository."
+        });
+      } else {
+        checks.push({
+          id: "target_path",
+          name: "Target path",
+          status: "pass",
+          message: "Not set (whole repository scope)."
+        });
+      }
+      checks.push({
+        id: "repository",
+        name: "Python project layout",
+        status: "pass",
+        message: "Repository is analyzable for pytest runs."
+      });
+    }
+    }
+
+    const tooling = detectPythonTooling(true);
+    checks.push({
+      id: "python",
+      name: "Python",
+      status: tooling.pythonAvailable ? "pass" : "fail",
+      message: tooling.pythonAvailable
+        ? `Found (${tooling.pythonCommand ?? "python"}).`
+        : "No working `python` / `python3` found on PATH."
+    });
+    checks.push({
+      id: "pytest",
+      name: "pytest",
+      status: tooling.pytestAvailable ? "pass" : "fail",
+      message: tooling.pytestAvailable ? "`pytest` is available on PATH." : "`pytest` not found on PATH."
+    });
+
+    if (effectiveAgent === "claude") {
+      const hasKey = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+      checks.push({
+        id: "anthropic_api_key",
+        name: "ANTHROPIC_API_KEY",
+        status: hasKey ? "pass" : "fail",
+        message: hasKey
+          ? "Set (Claude runs enabled)."
+          : "Required for Claude mode; set in environment or .env."
+      });
+    } else {
+      checks.push({
+        id: "anthropic_api_key",
+        name: "ANTHROPIC_API_KEY",
+        status: "pass",
+        message: "Not required for fake mode."
+      });
+    }
+
+    const plugins = detectPytestPlugins(true);
+    checks.push({
+      id: "pytest_json_report",
+      name: "pytest-json-report",
+      status: plugins.jsonReport ? "pass" : "warn",
+      message: plugins.jsonReport
+        ? "Installed; per-test case telemetry available."
+        : "Optional; install for per-test `cases` in reports and trace."
+    });
+    checks.push({
+      id: "pytest_cov",
+      name: "pytest-cov",
+      status: plugins.cov ? "pass" : "warn",
+      message: plugins.cov
+        ? "Installed; line coverage summaries available."
+        : "Optional; install for coverage in reports and trace."
+    });
+
+    return finalizePreflight(effectiveAgent, checks);
   }
 
   async startRun(request: RunRequest): Promise<RunStart> {
@@ -501,6 +671,11 @@ export class RunService {
 
     throw new Error(`Another run is already active: ${shortId(active.runId)}`);
   }
+}
+
+function finalizePreflight(agentMode: AgentMode, checks: PreflightCheck[]): PreflightResult {
+  const ok = !checks.some((c) => c.status === "fail");
+  return { ok, agentMode, checks };
 }
 
 function clampRepairRounds(value: number): number {

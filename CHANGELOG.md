@@ -19,6 +19,15 @@ All notable changes to this project will be documented in this file.
   prints just the coverage block.
 - UI: the Report Panel now renders a per-test case list with color-coded
   outcomes plus a coverage bar and per-file coverage rows when available.
+- `GET /api/preflight` (authenticated) and Run Panel preflight checklist: repo
+  path, optional target, Python/`pytest`, agent mode, `ANTHROPIC_API_KEY` when
+  using Claude, and optional `pytest-json-report` / `pytest-cov` plugins. The UI
+  debounces checks and re-runs preflight immediately before **Start run**.
+
+### Fixed
+
+- `writeJsonFile` now writes via a temp file + rename to reduce the chance of
+  readers observing truncated JSON under concurrent load (notably on Windows).
 
 ## [0.1.0] - 2026-03-08
 
