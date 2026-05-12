@@ -273,7 +273,7 @@ export function detectPytestPlugins(force = false): PytestPluginAvailability {
 }
 
 function pythonImportAvailable(moduleName: string): boolean {
-  const candidates = ["python3", "python"];
+  const candidates = process.platform === "win32" ? ["python", "python3"] : ["python3", "python"];
   for (const candidate of candidates) {
     try {
       const result = spawnSync(candidate, ["-c", `import ${moduleName}`], {
@@ -281,9 +281,6 @@ function pythonImportAvailable(moduleName: string): boolean {
       });
       if (result.status === 0) {
         return true;
-      }
-      if (result.status !== null) {
-        return false;
       }
     } catch {
       // Try the next candidate.
