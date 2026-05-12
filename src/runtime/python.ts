@@ -1,13 +1,19 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 
 import { DEFAULT_TIMEOUT_MS } from "../config.js";
 import type {
   AnalyzedModule,
+  CoverageFileSummary,
+  CoverageSummary,
   GeneratedTest,
   RepoAnalysis,
   RunContext,
+  TestCaseOutcome,
+  TestCaseResult,
   TestExecutionResult,
   ValidationFailure
 } from "../types.js";
@@ -248,17 +254,128 @@ export async function ensureTestRoot(testRoot: string): Promise<void> {
   await ensureDir(testRoot);
 }
 
+export interface PytestPluginAvailability {
+  jsonReport: boolean;
+  cov: boolean;
+}
+
+let cachedPluginAvailability: PytestPluginAvailability | null = null;
+
+export function detectPytestPlugins(force = false): PytestPluginAvailability {
+  if (!force && cachedPluginAvailability) {
+    return cachedPluginAvailability;
+  }
+
+  const jsonReport = pythonImportAvailable("pytest_jsonreport");
+  const cov = pythonImportAvailable("pytest_cov");
+  cachedPluginAvailability = { jsonReport, cov };
+  return cachedPluginAvailability;
+}
+
+function pythonImportAvailable(moduleName: string): boolean {
+  const candidates = process.platform === "win32" ? ["python", "python3"] : ["python3", "python"];
+  for (const candidate of candidates) {
+    try {
+      const result = spawnSync(candidate, ["-c", `import ${moduleName}`], {
+        stdio: "ignore"
+      });
+      if (result.status === 0) {
+        return true;
+      }
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  return false;
+}
+
+export interface RunPytestOptions {
+  coverageScope?: string[];
+  reportArtifactsDir?: string;
+  plugins?: PytestPluginAvailability;
+}
+
 export async function runPytest(
   context: RunContext,
   generatedTests: GeneratedTest[],
-  isCancelled: () => Promise<boolean>
+  isCancelled: () => Promise<boolean>,
+  options: RunPytestOptions = {}
 ): Promise<TestExecutionResult> {
   const relativeTests = generatedTests.map((item) => item.path);
-  const args = ["-q", ...relativeTests];
+  const plugins = options.plugins ?? detectPytestPlugins();
+  const artifactsDir =
+    options.reportArtifactsDir ?? path.join(os.tmpdir(), `safetest-forge-${randomUUID()}`);
+  await ensureDir(artifactsDir);
+
+  const jsonReportPath = path.join(artifactsDir, "pytest-report.json");
+  const coverageReportPath = path.join(artifactsDir, "coverage.json");
+  const args: string[] = ["-q", ...relativeTests];
+  if (plugins.jsonReport) {
+    args.push("--json-report", `--json-report-file=${jsonReportPath}`);
+  }
+  if (plugins.cov) {
+    const scope = (options.coverageScope ?? []).filter((entry) => entry.length > 0);
+    for (const scopeEntry of scope.length > 0 ? scope : ["."]) {
+      args.push(`--cov=${scopeEntry}`);
+    }
+    args.push(`--cov-report=json:${coverageReportPath}`);
+  }
+
   const command = `pytest ${args.join(" ")}`;
   const startedAt = Date.now();
 
-  return new Promise<TestExecutionResult>((resolve, reject) => {
+  const execution = await spawnPytest(context, args, isCancelled);
+
+  const combined = `${execution.stdout}\n${execution.stderr}`;
+  const textCounts = parsePytestCounts(combined);
+  let cases: TestCaseResult[] = [];
+  let counts = textCounts;
+  if (plugins.jsonReport) {
+    const parsed = await loadJsonReport(jsonReportPath);
+    if (parsed) {
+      cases = parsed.cases;
+      counts = parsed.counts;
+    }
+  }
+
+  let coverage: CoverageSummary | undefined;
+  if (plugins.cov) {
+    coverage = await loadCoverageReport(coverageReportPath, context.repoPath);
+  }
+
+  await fs.rm(artifactsDir, { recursive: true, force: true }).catch(() => {});
+
+  return {
+    command,
+    cwd: context.repoPath,
+    exit_code: execution.exitCode,
+    passed: counts.passed,
+    failed: counts.failed,
+    errors: counts.errors,
+    stdout: execution.stdout,
+    stderr: execution.stderr,
+    duration_ms: Date.now() - startedAt,
+    timed_out: execution.timedOut,
+    cancelled: execution.cancelled,
+    cases,
+    coverage
+  };
+}
+
+interface PytestSpawnResult {
+  exitCode: number | null;
+  stdout: string;
+  stderr: string;
+  timedOut: boolean;
+  cancelled: boolean;
+}
+
+async function spawnPytest(
+  context: RunContext,
+  args: string[],
+  isCancelled: () => Promise<boolean>
+): Promise<PytestSpawnResult> {
+  return new Promise<PytestSpawnResult>((resolve, reject) => {
     const child = spawn("pytest", args, {
       cwd: context.repoPath,
       env: process.env,
@@ -308,23 +425,150 @@ export async function runPytest(
       settled = true;
       clearTimeout(timeout);
       clearInterval(cancelInterval);
-      const combined = `${stdout}\n${stderr}`;
-      const { passed, failed, errors } = parsePytestCounts(combined);
-      resolve({
-        command,
-        cwd: context.repoPath,
-        exit_code: code,
-        passed,
-        failed,
-        errors,
-        stdout,
-        stderr,
-        duration_ms: Date.now() - startedAt,
-        timed_out: timedOut,
-        cancelled
-      });
+      resolve({ exitCode: code, stdout, stderr, timedOut, cancelled });
     });
   });
+}
+
+interface PytestJsonCounts {
+  passed: number;
+  failed: number;
+  errors: number;
+}
+
+interface PytestJsonOutcome {
+  cases: TestCaseResult[];
+  counts: PytestJsonCounts;
+}
+
+async function loadJsonReport(reportPath: string): Promise<PytestJsonOutcome | null> {
+  if (!(await pathExists(reportPath))) {
+    return null;
+  }
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(reportPath, "utf8");
+  } catch {
+    return null;
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  const rawTests: any[] = Array.isArray(parsed?.tests) ? parsed.tests : [];
+  const cases: TestCaseResult[] = rawTests.map((entry) => normalizeJsonTest(entry));
+
+  const summary = parsed?.summary ?? {};
+  const summaryPassed = numberOrZero(summary.passed);
+  const summaryFailed = numberOrZero(summary.failed);
+  const summaryErrors = numberOrZero(summary.error) + numberOrZero(summary.errors);
+
+  const counts: PytestJsonCounts = {
+    passed: summaryPassed || cases.filter((item) => item.outcome === "passed").length,
+    failed: summaryFailed || cases.filter((item) => item.outcome === "failed").length,
+    errors: summaryErrors || cases.filter((item) => item.outcome === "error").length
+  };
+
+  return { cases, counts };
+}
+
+function normalizeJsonTest(entry: any): TestCaseResult {
+  const nodeid = typeof entry?.nodeid === "string" ? entry.nodeid : "";
+  const outcome = normalizeOutcome(entry?.outcome);
+  const setupDuration = numberOrZero(entry?.setup?.duration);
+  const callDuration = numberOrZero(entry?.call?.duration);
+  const teardownDuration = numberOrZero(entry?.teardown?.duration);
+  const durationSeconds = setupDuration + callDuration + teardownDuration;
+
+  const callCrash =
+    typeof entry?.call?.crash?.message === "string" ? entry.call.crash.message : null;
+  const setupCrash =
+    typeof entry?.setup?.crash?.message === "string" ? entry.setup.crash.message : null;
+  const message = callCrash ?? setupCrash;
+
+  const file = nodeid.includes("::") ? nodeid.split("::")[0] ?? null : nodeid || null;
+
+  return {
+    nodeid,
+    outcome,
+    duration_ms: Math.round(durationSeconds * 1000),
+    file,
+    message
+  };
+}
+
+function normalizeOutcome(value: unknown): TestCaseOutcome {
+  if (value === "passed" || value === "failed" || value === "skipped" || value === "error") {
+    return value;
+  }
+  if (value === "xfailed" || value === "xpassed") {
+    return value;
+  }
+  return "error";
+}
+
+async function loadCoverageReport(
+  reportPath: string,
+  repoPath: string
+): Promise<CoverageSummary | undefined> {
+  if (!(await pathExists(reportPath))) {
+    return undefined;
+  }
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(reportPath, "utf8");
+  } catch {
+    return undefined;
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+
+  const filesObject = parsed?.files && typeof parsed.files === "object" ? parsed.files : {};
+  const files: CoverageFileSummary[] = [];
+  for (const [filePath, fileEntry] of Object.entries(filesObject)) {
+    const summary = (fileEntry as any)?.summary ?? {};
+    const linesCovered = numberOrZero(summary.covered_lines);
+    const linesTotal = numberOrZero(summary.num_statements);
+    const percent = roundPercent(numberOrZero(summary.percent_covered));
+    files.push({
+      file: toPosix(path.isAbsolute(filePath) ? path.relative(repoPath, filePath) : filePath),
+      lines_covered: linesCovered,
+      lines_total: linesTotal,
+      percent
+    });
+  }
+
+  files.sort((left, right) => left.file.localeCompare(right.file));
+  const totals = parsed?.totals ?? {};
+  const overallPercent = roundPercent(numberOrZero(totals.percent_covered));
+
+  return {
+    source: "pytest-cov",
+    overall_percent: overallPercent,
+    files
+  };
+}
+
+function roundPercent(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function numberOrZero(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  return 0;
 }
 
 function parsePytestCounts(output: string): { passed: number; failed: number; errors: number } {

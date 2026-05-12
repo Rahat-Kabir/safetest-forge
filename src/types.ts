@@ -68,6 +68,37 @@ export interface CostSummary {
   by_model: Record<string, unknown>;
 }
 
+export type TestCaseOutcome =
+  | "passed"
+  | "failed"
+  | "skipped"
+  | "error"
+  | "xfailed"
+  | "xpassed";
+
+export interface TestCaseResult {
+  nodeid: string;
+  outcome: TestCaseOutcome;
+  duration_ms: number;
+  file: string | null;
+  message: string | null;
+}
+
+export interface CoverageFileSummary {
+  file: string;
+  lines_covered: number;
+  lines_total: number;
+  percent: number;
+}
+
+export type CoverageSource = "pytest-cov" | "coverage.py" | "unavailable";
+
+export interface CoverageSummary {
+  source: CoverageSource;
+  overall_percent: number;
+  files: CoverageFileSummary[];
+}
+
 export interface TestRunSummary {
   command: string;
   exit_code: number | null;
@@ -78,6 +109,8 @@ export interface TestRunSummary {
   stderr?: string;
   duration_ms?: number;
   timed_out?: boolean;
+  cases: TestCaseResult[];
+  coverage?: CoverageSummary;
 }
 
 export interface RepairSummary {
@@ -140,6 +173,8 @@ export interface TraceEvent {
     | "file_changed"
     | "checkpoint_created"
     | "rewind_available"
+    | "test_case_result"
+    | "coverage_summary"
     | "run_finished"
     | "run_failed";
   data: Record<string, unknown>;

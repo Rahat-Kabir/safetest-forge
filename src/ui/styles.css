@@ -541,6 +541,8 @@ body {
 .trace-badge--checkpoint { background: var(--trace-checkpoint-bg); color: var(--trace-checkpoint); }
 .trace-badge--agent { background: var(--trace-agent-bg); color: var(--trace-agent); }
 .trace-badge--progress { background: var(--trace-progress-bg); color: var(--trace-progress); }
+.trace-badge--case { background: var(--status-passed-bg); color: var(--status-passed); }
+.trace-badge--coverage { background: var(--trace-file-bg); color: var(--trace-file); }
 
 .trace-preview {
   font-size: 13px;
@@ -743,6 +745,160 @@ body {
   text-align: center;
   color: var(--text-tertiary);
   font-size: 13px;
+}
+
+/* ─── Coverage Section ─── */
+
+.coverage-section {
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px 16px 14px;
+}
+
+.coverage-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.coverage-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.coverage-percent {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.coverage-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border-subtle);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.coverage-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #059669, #10b981);
+  transition: width 200ms ease;
+}
+
+.coverage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.coverage-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  gap: 8px;
+}
+
+.coverage-row-file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.coverage-row-percent {
+  color: var(--text-primary);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ─── Test Cases Section ─── */
+
+.cases-section {
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px 16px 14px;
+}
+
+.cases-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cases-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cases-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cases-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.case-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.case-outcome {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.case-outcome--passed { background: var(--status-passed-bg); color: var(--status-passed); }
+.case-outcome--failed { background: var(--danger-bg); color: var(--danger); }
+.case-outcome--error { background: var(--danger-bg); color: var(--danger); }
+.case-outcome--skipped { background: var(--trace-progress-bg); color: var(--trace-progress); }
+.case-outcome--xfailed { background: var(--trace-checkpoint-bg); color: var(--trace-checkpoint); }
+.case-outcome--xpassed { background: var(--trace-checkpoint-bg); color: var(--trace-checkpoint); }
+
+.case-node {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.case-duration {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-size: 10px;
 }
 
 /* ─── Phase Progress ─── */

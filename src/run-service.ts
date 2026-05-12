@@ -14,6 +14,7 @@ import type { AgentClient } from "./agent/types.js";
 import {
   buildRunContext,
   classifyFailure,
+  detectPytestPlugins,
   ensureTestRoot,
   runPytest,
   validateRepository
@@ -263,15 +264,16 @@ export class RunService {
     const agent = this.agentFactory(context.agentMode);
     let totalCostUsd = 0;
     let modelUsage: Record<string, unknown> = {};
-    let testRun: TestExecutionResult = {
-      command: "pytest",
-      cwd: context.repoPath,
-      exit_code: null,
-      passed: 0,
-      failed: 0,
-      errors: 0,
-      cancelled: false
-    };
+  let testRun: TestExecutionResult = {
+    command: "pytest",
+    cwd: context.repoPath,
+    exit_code: null,
+    passed: 0,
+    failed: 0,
+    errors: 0,
+    cancelled: false,
+    cases: []
+  };
     let status: RunStatus = "running";
     let failureCode: string | null = null;
     let repairAttempted = false;
@@ -330,7 +332,12 @@ export class RunService {
         return await this.finishRun(record, buildFinalReport(context, status, failureCode, analyzedModules, generatedTests, testRun, repairAttempted, repairRoundsUsed, repairStoppedReason, record));
       }
 
-      testRun = await runPytest(context, generatedTests, sink.isCancelled);
+      const pytestPlugins = detectPytestPlugins();
+      const coverageScope = derivePytestCoverageScope(context.repoPath, validation.analysis);
+      const pytestOptions = { plugins: pytestPlugins, coverageScope };
+
+      testRun = await runPytest(context, generatedTests, sink.isCancelled, pytestOptions);
+      await this.emitTestRunResultEvents(context.runId, testRun);
       if (testRun.cancelled) {
         status = "cancelled";
         failureCode = "cancelled";
@@ -362,7 +369,8 @@ export class RunService {
           modelUsage = mergeModelUsage(modelUsage, repair.modelUsage);
           repairRoundsUsed = 1;
           repairStoppedReason = repair.stoppedReason;
-          testRun = await runPytest(context, generatedTests, sink.isCancelled);
+          testRun = await runPytest(context, generatedTests, sink.isCancelled, pytestOptions);
+          await this.emitTestRunResultEvents(context.runId, testRun);
           if (testRun.exit_code === 0) {
             status = "passed";
           } else if (testRun.cancelled) {
@@ -448,6 +456,36 @@ export class RunService {
     await this.store.appendEvent(event.runId, event);
   }
 
+  private async emitTestRunResultEvents(runId: string, testRun: TestExecutionResult): Promise<void> {
+    for (const testCase of testRun.cases ?? []) {
+      await this.emit({
+        runId,
+        ts: nowIso(),
+        type: "test_case_result",
+        data: {
+          nodeid: testCase.nodeid,
+          outcome: testCase.outcome,
+          duration_ms: testCase.duration_ms,
+          file: testCase.file,
+          message: testCase.message
+        }
+      });
+    }
+
+    if (testRun.coverage) {
+      await this.emit({
+        runId,
+        ts: nowIso(),
+        type: "coverage_summary",
+        data: {
+          source: testRun.coverage.source,
+          overall_percent: testRun.coverage.overall_percent,
+          files: testRun.coverage.files
+        }
+      });
+    }
+  }
+
   private async assertNoActiveRun(): Promise<void> {
     const active = await this.store.getActiveRun();
     if (!active) {
@@ -471,6 +509,18 @@ function clampRepairRounds(value: number): number {
 
 function defaultAgentFactory(mode: "claude" | "fake"): AgentClient {
   return mode === "claude" ? new ClaudeAgentClient() : new FakeAgentClient();
+}
+
+function derivePytestCoverageScope(repoPath: string, analysis: { packageRoots: string[] }): string[] {
+  const scope = new Set<string>();
+  for (const packageRoot of analysis.packageRoots) {
+    const relative = path.relative(repoPath, packageRoot);
+    if (!relative || relative.startsWith("..")) {
+      continue;
+    }
+    scope.add(relative.split(path.sep).join(path.posix.sep));
+  }
+  return Array.from(scope);
 }
 
 function buildFinalReport(
