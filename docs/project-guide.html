@@ -1,0 +1,1361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SafeTest Forge Teaching Guide</title>
+  <style>
+    :root {
+      --ink: #16211c;
+      --muted: #59665f;
+      --soft: #f6f4ee;
+      --paper: #fffdf8;
+      --line: #d9d3c8;
+      --green: #1d6f5b;
+      --green-soft: #dff2ea;
+      --blue: #245f93;
+      --blue-soft: #dfedf8;
+      --plum: #775179;
+      --plum-soft: #f0e4f0;
+      --amber: #9d651e;
+      --amber-soft: #f5e7d1;
+      --red: #a54040;
+      --red-soft: #f5dddd;
+      --teal: #0f766e;
+      --shadow: 0 18px 60px rgba(22, 33, 28, 0.12);
+      --radius: 8px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(29, 111, 91, 0.06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(29, 111, 91, 0.05) 1px, transparent 1px),
+        var(--soft);
+      background-size: 28px 28px;
+      font-family: var(--sans);
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+
+    code,
+    pre {
+      font-family: var(--mono);
+    }
+
+    code {
+      padding: 0.12rem 0.35rem;
+      border: 1px solid rgba(22, 33, 28, 0.1);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 0;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #17201d;
+      color: #f8f2e8;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 1rem;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.92);
+      backdrop-filter: blur(12px);
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.4rem 0.2rem 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--ink);
+      color: white;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .brand span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .nav {
+      display: grid;
+      gap: 0.2rem;
+      margin: 1rem 0;
+    }
+
+    .nav a {
+      display: flex;
+      gap: 0.55rem;
+      align-items: center;
+      padding: 0.55rem 0.6rem;
+      border-radius: 7px;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 0.92rem;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: var(--green-soft);
+      color: #0e4e3e;
+    }
+
+    .nav svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+
+    .side-note {
+      padding: 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbf6e9;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .hero {
+      min-height: 92vh;
+      display: grid;
+      align-items: center;
+      padding: 5rem clamp(1.2rem, 4vw, 4rem) 3rem;
+      background:
+        linear-gradient(180deg, rgba(255, 253, 248, 0.55), rgba(255, 253, 248, 0.96)),
+        radial-gradient(circle at 18% 20%, rgba(31, 111, 91, 0.12), transparent 30%),
+        radial-gradient(circle at 85% 18%, rgba(36, 95, 147, 0.12), transparent 28%),
+        var(--paper);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-inner {
+      max-width: 1160px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
+      gap: clamp(2rem, 5vw, 4.5rem);
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-bottom: 1rem;
+      color: var(--green);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 850px;
+      font-size: clamp(3rem, 6vw, 5.9rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+      margin: 1.4rem 0 0;
+      color: var(--muted);
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.8rem;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-height: 42px;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--ink);
+      border-radius: 7px;
+      background: var(--ink);
+      color: white;
+      text-decoration: none;
+      font-weight: 750;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .button.secondary {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .hero-visual {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .window-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      background: #f4efe4;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .dots {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    .dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+
+    .dots span:nth-child(1) { background: #d96c64; }
+    .dots span:nth-child(2) { background: #ddb453; }
+    .dots span:nth-child(3) { background: #5fb37d; }
+
+    .terminal {
+      padding: 1rem;
+      background: #17201d;
+      color: #efe9dd;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      min-height: 268px;
+    }
+
+    .terminal-line {
+      display: block;
+      margin: 0.35rem 0;
+      white-space: pre-wrap;
+    }
+
+    .t-muted { color: #9fb3a8; }
+    .t-green { color: #8fe0bd; }
+    .t-blue { color: #9bc7f1; }
+    .t-amber { color: #f0c786; }
+
+    .content {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 3rem clamp(1.2rem, 4vw, 4rem) 5rem;
+    }
+
+    section {
+      scroll-margin-top: 1rem;
+      padding: 3rem 0;
+      border-bottom: 1px solid rgba(217, 211, 200, 0.8);
+    }
+
+    section:last-child {
+      border-bottom: 0;
+    }
+
+    .section-kicker {
+      color: var(--green);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.76rem;
+    }
+
+    h2 {
+      margin: 0.25rem 0 0.8rem;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 0.65rem;
+      font-size: 1.25rem;
+      line-height: 1.2;
+    }
+
+    .lead {
+      max-width: 820px;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 253, 248, 0.9);
+      padding: 1rem;
+    }
+
+    .panel.green { background: var(--green-soft); border-color: #b8decf; }
+    .panel.blue { background: var(--blue-soft); border-color: #bad8ef; }
+    .panel.plum { background: var(--plum-soft); border-color: #dfc6df; }
+    .panel.amber { background: var(--amber-soft); border-color: #e4c99f; }
+    .panel.red { background: var(--red-soft); border-color: #e3b9b9; }
+
+    .mini-title {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-bottom: 0.55rem;
+      font-weight: 800;
+    }
+
+    .mini-title svg {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+    }
+
+    .fine {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .diagram-wrap {
+      margin-top: 1.3rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      overflow: auto;
+      box-shadow: 0 12px 40px rgba(22, 33, 28, 0.08);
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      min-width: 900px;
+      width: 100%;
+      height: auto;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.38rem 0.55rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.2rem;
+    }
+
+    .compare .panel {
+      min-height: 100%;
+    }
+
+    .callout {
+      margin: 1.2rem 0;
+      padding: 1rem;
+      border-left: 5px solid var(--green);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      background: rgba(223, 242, 234, 0.9);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0.7rem;
+      margin-top: 1.2rem;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 0.8rem;
+      align-items: start;
+      padding: 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 253, 248, 0.9);
+      cursor: pointer;
+    }
+
+    .step:hover,
+    .step.active {
+      border-color: #95cbb7;
+      background: #eef8f3;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--ink);
+      color: white;
+      font-weight: 850;
+      font-family: var(--mono);
+    }
+
+    .step p {
+      margin: 0.25rem 0 0;
+      color: var(--muted);
+    }
+
+    .step-detail {
+      margin-top: 1rem;
+      min-height: 155px;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 1.1rem 0;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.75);
+      padding: 0.58rem 0.7rem;
+      font: inherit;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 750;
+    }
+
+    .tab[aria-selected="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: white;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .artifact-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1.2rem;
+    }
+
+    .artifact {
+      padding: 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+    }
+
+    .artifact strong {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-family: var(--mono);
+      font-size: 0.86rem;
+    }
+
+    .search {
+      width: 100%;
+      max-width: 440px;
+      min-height: 42px;
+      margin: 1rem 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0.65rem 0.75rem;
+      background: var(--paper);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .glossary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .term {
+      padding: 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+    }
+
+    .term strong {
+      display: block;
+      margin-bottom: 0.25rem;
+      color: var(--green);
+    }
+
+    .run-lab {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 0.65rem;
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .checklist li {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      gap: 0.5rem;
+      align-items: start;
+    }
+
+    .check-icon {
+      width: 20px;
+      height: 20px;
+      margin-top: 0.12rem;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--green);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
+    .footer {
+      padding: 2rem clamp(1.2rem, 4vw, 4rem) 4rem;
+      color: var(--muted);
+      text-align: center;
+      background: rgba(255, 253, 248, 0.78);
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-inner,
+      .grid.two,
+      .grid.three,
+      .compare,
+      .run-lab,
+      .glossary {
+        grid-template-columns: 1fr;
+      }
+
+      .artifact-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      h1 {
+        font-size: 2.65rem;
+      }
+
+      .hero {
+        min-height: auto;
+        padding-top: 2rem;
+      }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        grid-template-columns: 1fr;
+      }
+
+      .artifact-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Guide navigation">
+      <div class="brand">
+        <div class="mark">SF</div>
+        <div>
+          <strong>SafeTest Forge</strong>
+          <span>Project teaching guide</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#big-picture"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Big picture</a>
+        <a href="#architecture"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h6v6H5zM13 11h6v6h-6zM8 13v4h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Architecture</a>
+        <a href="#run-flow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12M13 8l4 4-4 4M5 5h3M5 19h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Run flow</a>
+        <a href="#modes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 7v10m10-10v10M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>UI, CLI, modes</a>
+        <a href="#storage"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6c0-1.1 3.1-2 7-2s7 .9 7 2-3.1 2-7 2-7-.9-7-2Zm0 0v12c0 1.1 3.1 2 7 2s7-.9 7-2V6M5 12c0 1.1 3.1 2 7 2s7-.9 7-2" fill="none" stroke="currentColor" stroke-width="2"/></svg>Storage</a>
+        <a href="#safety"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.3-7 10-4.2-1.7-7-5.5-7-10V6l7-3Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Safety</a>
+        <a href="#try-it"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l4 4-4 4M13 16h4M4 5h16v14H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Try it</a>
+        <a href="#code-map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H5v16h14V8h-7V4H8Zm4 0v4M8 13h8M8 17h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Code map</a>
+      </nav>
+      <div class="side-note">
+        Open this file directly in your browser. It does not need a dev server.
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="hero">
+        <div class="hero-inner">
+          <div>
+            <div class="eyebrow">Local-first pytest generation</div>
+            <h1>Understand SafeTest Forge from zero.</h1>
+            <p class="hero-copy">
+              This guide explains what the project is, how a run moves through the system,
+              what the CLI and UI share, where files are written, and why the safety layer matters.
+            </p>
+            <div class="hero-actions">
+              <a class="button" href="#try-it">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+                Start with a fake run
+              </a>
+              <a class="button secondary" href="#architecture">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h6v6H5zM13 11h6v6h-6z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                See the architecture
+              </a>
+            </div>
+          </div>
+          <div class="hero-visual" aria-label="Example terminal run">
+            <div class="window-bar">
+              <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <span>safetest-forge run</span>
+            </div>
+            <div class="terminal">
+              <span class="terminal-line t-muted">$ npm run cli -- run --repo tests/fixtures/simple-package --agent-mode fake</span>
+              <span class="terminal-line t-blue">run_id=19c52ed3-122a-4bb1-bb51-1a5acafb8306</span>
+              <span class="terminal-line t-amber">[checkpoint_created] fake-checkpoint...</span>
+              <span class="terminal-line">[tool_use] Write tests/test_calculator.py</span>
+              <span class="terminal-line t-green">[test_case_result] test_add_returns_sum passed</span>
+              <span class="terminal-line t-green">[test_case_result] test_divide_handles_even_values passed</span>
+              <span class="terminal-line t-green">status=passed</span>
+              <span class="terminal-line t-muted">report_path=.safetest-forge/runs/&lt;run-id&gt;/report.json</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content">
+        <section id="big-picture">
+          <div class="section-kicker">1. Big picture</div>
+          <h2>What this project does</h2>
+          <p class="lead">
+            SafeTest Forge is a TypeScript tool that creates and runs Python <code>pytest</code>
+            tests for an existing local Python repository. The important promise is not just
+            "AI writes tests." The promise is "AI writes tests, the tool runs them, records what
+            happened, blocks unsafe edits, and lets you inspect or rewind the work."
+          </p>
+
+          <div class="grid three">
+            <div class="panel green">
+              <div class="mini-title">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Input
+              </div>
+              <p>A path to a local Python repo, optional target path, repair limit, timeout, and agent mode.</p>
+            </div>
+            <div class="panel blue">
+              <div class="mini-title">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Work
+              </div>
+              <p>Analyze Python files, generate tests, run pytest, classify failures, and repair generated tests once or twice.</p>
+            </div>
+            <div class="panel plum">
+              <div class="mini-title">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7zM10 8h4M10 12h4M10 16h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Output
+              </div>
+              <p>Generated test files, a structured report, a trace event log, checkpoint metadata, and rewind data.</p>
+            </div>
+          </div>
+
+          <div class="callout">
+            <strong>The project is CLI-first.</strong>
+            Every important feature must work from the CLI before the UI wraps it. The React UI is a dashboard over the same run engine, not a separate implementation.
+          </div>
+        </section>
+
+        <section id="architecture">
+          <div class="section-kicker">2. Architecture</div>
+          <h2>One engine, two front doors</h2>
+          <p class="lead">
+            The CLI and UI both call the same <code>RunService</code>. That service is the center of the application:
+            it validates the repo, asks an agent to generate tests, runs pytest, records events, and writes the final report.
+          </p>
+
+          <div class="diagram-wrap" role="img" aria-label="Architecture diagram">
+            <svg viewBox="0 0 1120 560" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#16211c"/>
+                </marker>
+                <style>
+                  .box{fill:#fffdf8;stroke:#d9d3c8;stroke-width:2;rx:8}
+                  .green{fill:#dff2ea;stroke:#96cdb8}
+                  .blue{fill:#dfedf8;stroke:#9ec5e8}
+                  .plum{fill:#f0e4f0;stroke:#d5afd8}
+                  .amber{fill:#f5e7d1;stroke:#e2be83}
+                  .text{font:700 18px system-ui;fill:#16211c}
+                  .small{font:14px system-ui;fill:#59665f}
+                  .mono{font:13px monospace;fill:#59665f}
+                  .line{stroke:#16211c;stroke-width:2.4;fill:none;marker-end:url(#arrow)}
+                </style>
+              </defs>
+
+              <rect x="35" y="65" width="180" height="105" class="box green"/>
+              <text x="65" y="105" class="text">CLI</text>
+              <text x="65" y="132" class="small">src/cli.ts</text>
+              <text x="65" y="153" class="mono">run/report/trace</text>
+
+              <rect x="35" y="290" width="180" height="105" class="box blue"/>
+              <text x="65" y="330" class="text">React UI</text>
+              <text x="65" y="357" class="small">src/ui/App.tsx</text>
+              <text x="65" y="378" class="mono">panels + SSE</text>
+
+              <rect x="285" y="255" width="195" height="135" class="box blue"/>
+              <text x="323" y="300" class="text">Express API</text>
+              <text x="323" y="327" class="small">src/server/app.ts</text>
+              <text x="323" y="350" class="mono">REST commands</text>
+              <text x="323" y="371" class="mono">SSE events</text>
+
+              <rect x="555" y="205" width="210" height="180" class="box green"/>
+              <text x="598" y="252" class="text">RunService</text>
+              <text x="598" y="279" class="small">src/run-service.ts</text>
+              <text x="598" y="304" class="mono">validate -> generate</text>
+              <text x="598" y="326" class="mono">pytest -> repair</text>
+              <text x="598" y="348" class="mono">report -> persist</text>
+
+              <rect x="845" y="45" width="220" height="105" class="box plum"/>
+              <text x="885" y="85" class="text">Agent client</text>
+              <text x="885" y="112" class="small">fake or Claude</text>
+              <text x="885" y="133" class="mono">writes test files</text>
+
+              <rect x="845" y="205" width="220" height="105" class="box amber"/>
+              <text x="885" y="245" class="text">Python runtime</text>
+              <text x="885" y="272" class="small">src/runtime/python.ts</text>
+              <text x="885" y="293" class="mono">repo scan + pytest</text>
+
+              <rect x="845" y="365" width="220" height="105" class="box green"/>
+              <text x="885" y="405" class="text">RunStore</text>
+              <text x="885" y="432" class="small">src/storage/run-store.ts</text>
+              <text x="885" y="453" class="mono">flat files</text>
+
+              <rect x="555" y="430" width="210" height="85" class="box amber"/>
+              <text x="596" y="466" class="text">Policy hooks</text>
+              <text x="596" y="493" class="small">src/policy/policy.ts</text>
+
+              <path d="M215 118 C330 118 410 178 555 250" class="line"/>
+              <path d="M215 342 H285" class="line"/>
+              <path d="M480 322 H555" class="line"/>
+              <path d="M765 250 C810 185 820 115 845 98" class="line"/>
+              <path d="M765 292 H845" class="line"/>
+              <path d="M765 340 C805 370 808 412 845 418" class="line"/>
+              <path d="M660 385 V430" class="line"/>
+            </svg>
+          </div>
+
+          <div class="pill-row" aria-label="Main architecture modules">
+            <span class="pill">CLI: command entry point</span>
+            <span class="pill">Server: local API</span>
+            <span class="pill">RunService: orchestration</span>
+            <span class="pill">Agent: fake or Claude</span>
+            <span class="pill">Runtime: Python and pytest</span>
+            <span class="pill">Store: JSON and NDJSON files</span>
+          </div>
+        </section>
+
+        <section id="run-flow">
+          <div class="section-kicker">3. Run lifecycle</div>
+          <h2>What happens when you click Start or run the CLI</h2>
+          <p class="lead">
+            Click each step. The details mirror the actual code path in <code>RunService.startRun()</code>
+            and <code>RunService.executeRun()</code>.
+          </p>
+
+          <div class="timeline" id="steps">
+            <button class="step active" data-step="0">
+              <span class="step-num">01</span>
+              <span><strong>Create run</strong><p>Build a run ID, save initial metadata, and mark one active run.</p></span>
+            </button>
+            <button class="step" data-step="1">
+              <span class="step-num">02</span>
+              <span><strong>Validate repository</strong><p>Confirm the path exists and find Python files, package roots, and test roots.</p></span>
+            </button>
+            <button class="step" data-step="2">
+              <span class="step-num">03</span>
+              <span><strong>Generate tests</strong><p>Use either the deterministic fake agent or the Claude Agent SDK to write tests.</p></span>
+            </button>
+            <button class="step" data-step="3">
+              <span class="step-num">04</span>
+              <span><strong>Run pytest</strong><p>Run only the generated test files, capture output, cases, coverage, and timeout state.</p></span>
+            </button>
+            <button class="step" data-step="4">
+              <span class="step-num">05</span>
+              <span><strong>Repair or classify</strong><p>Repair generated-test failures when safe, or classify environment and runtime failures.</p></span>
+            </button>
+            <button class="step" data-step="5">
+              <span class="step-num">06</span>
+              <span><strong>Persist result</strong><p>Write report.json, events.ndjson, run.json, and rewind metadata.</p></span>
+            </button>
+          </div>
+
+          <div class="panel step-detail" id="stepDetail" aria-live="polite"></div>
+
+          <div class="diagram-wrap" role="img" aria-label="Run lifecycle diagram">
+            <svg viewBox="0 0 1120 300" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="flowArrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#16211c"/>
+                </marker>
+                <style>
+                  .node{fill:#fffdf8;stroke:#d9d3c8;stroke-width:2;rx:8}
+                  .ok{fill:#dff2ea;stroke:#95cbb7}
+                  .warn{fill:#f5e7d1;stroke:#e1bc80}
+                  .bad{fill:#f5dddd;stroke:#dfabab}
+                  .label{font:700 16px system-ui;fill:#16211c}
+                  .meta{font:13px system-ui;fill:#59665f}
+                  .arrow{stroke:#16211c;stroke-width:2;fill:none;marker-end:url(#flowArrow)}
+                </style>
+              </defs>
+              <rect x="35" y="82" width="135" height="84" class="node ok"/>
+              <text x="65" y="118" class="label">Input</text>
+              <text x="60" y="142" class="meta">repo path</text>
+              <path d="M170 124 H235" class="arrow"/>
+
+              <rect x="235" y="82" width="135" height="84" class="node"/>
+              <text x="267" y="118" class="label">Scan</text>
+              <text x="260" y="142" class="meta">Python files</text>
+              <path d="M370 124 H435" class="arrow"/>
+
+              <rect x="435" y="82" width="135" height="84" class="node"/>
+              <text x="462" y="118" class="label">Agent</text>
+              <text x="455" y="142" class="meta">write tests</text>
+              <path d="M570 124 H635" class="arrow"/>
+
+              <rect x="635" y="82" width="135" height="84" class="node warn"/>
+              <text x="668" y="118" class="label">Pytest</text>
+              <text x="660" y="142" class="meta">execute</text>
+              <path d="M770 124 H835" class="arrow"/>
+
+              <rect x="835" y="50" width="135" height="84" class="node ok"/>
+              <text x="865" y="86" class="label">Passed</text>
+              <text x="862" y="110" class="meta">finish run</text>
+
+              <rect x="835" y="170" width="135" height="84" class="node bad"/>
+              <text x="866" y="206" class="label">Failed</text>
+              <text x="858" y="230" class="meta">repair/classify</text>
+
+              <path d="M770 124 C800 112 810 92 835 92" class="arrow"/>
+              <path d="M770 124 C800 150 810 208 835 212" class="arrow"/>
+              <path d="M902 170 C910 146 900 138 902 134" class="arrow"/>
+              <path d="M970 92 H1055" class="arrow"/>
+              <path d="M970 212 C1015 200 1025 132 1055 120" class="arrow"/>
+
+              <rect x="1055" y="82" width="50" height="84" class="node ok"/>
+              <text x="1067" y="118" class="label">Log</text>
+              <text x="1068" y="142" class="meta">files</text>
+            </svg>
+          </div>
+        </section>
+
+        <section id="modes">
+          <div class="section-kicker">4. CLI, UI, fake, Claude</div>
+          <h2>Four names you will see constantly</h2>
+          <p class="lead">
+            There are two interfaces and two agent modes. The interfaces choose how you operate the tool.
+            The agent mode chooses who writes the generated tests.
+          </p>
+
+          <div class="compare">
+            <div class="panel green">
+              <h3>CLI</h3>
+              <p>Best for learning, automation, and seeing raw output. It calls <code>RunService</code> directly.</p>
+              <pre><code>npm run cli -- run --repo tests/fixtures/simple-package --agent-mode fake
+npm run cli -- report --run &lt;run-id&gt;
+npm run cli -- trace --run &lt;run-id&gt;
+npm run cli -- rewind --run &lt;run-id&gt;</code></pre>
+            </div>
+            <div class="panel blue">
+              <h3>UI</h3>
+              <p>Best for visually watching a run. It talks to the Express server through REST and listens to live trace events through SSE.</p>
+              <pre><code>npm run build:ui
+npm run server
+
+open http://127.0.0.1:4317</code></pre>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Agent mode comparison">
+            <button class="tab" id="tab-fake" data-tab="fake" role="tab" aria-selected="true">fake mode</button>
+            <button class="tab" id="tab-claude" data-tab="claude" role="tab" aria-selected="false">claude mode</button>
+            <button class="tab" id="tab-server" data-tab="server" role="tab" aria-selected="false">server mode</button>
+          </div>
+
+          <div class="tab-panel active" id="panel-fake" role="tabpanel" aria-labelledby="tab-fake">
+            <div class="panel green">
+              <h3>fake mode: safe learning path</h3>
+              <p>
+                <code>FakeAgentClient</code> writes predictable tests based on fixture source code. It costs nothing,
+                needs no API key, and makes the integration tests deterministic.
+              </p>
+              <p class="fine">Use this first whenever you want to understand the lifecycle.</p>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="panel-claude" role="tabpanel" aria-labelledby="tab-claude">
+            <div class="panel plum">
+              <h3>claude mode: real agent path</h3>
+              <p>
+                <code>ClaudeAgentClient</code> uses <code>@anthropic-ai/claude-agent-sdk</code>. It builds prompts,
+                defines subagents, enables file checkpointing, normalizes SDK messages, and applies policy hooks
+                before file writes or shell commands.
+              </p>
+              <p class="fine">This requires <code>ANTHROPIC_API_KEY</code> and can spend API credits.</p>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="panel-server" role="tabpanel" aria-labelledby="tab-server">
+            <div class="panel blue">
+              <h3>server mode: the UI backend</h3>
+              <p>
+                <code>npm run server</code> starts Express on <code>127.0.0.1:4317</code>. It writes a local
+                token to <code>.safetest-forge/server.json</code> and requires that token on mutating endpoints.
+              </p>
+              <p class="fine">The UI page receives the token when the server renders <code>index.html</code>.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="storage">
+          <div class="section-kicker">5. Storage</div>
+          <h2>Every run leaves a local paper trail</h2>
+          <p class="lead">
+            The project uses flat files under <code>.safetest-forge/</code>. That makes it easy to inspect what happened without a database.
+          </p>
+
+          <div class="artifact-grid">
+            <div class="artifact">
+              <strong>run.json</strong>
+              <span class="fine">Run config and status: repo path, target path, agent mode, timeout, generated files.</span>
+            </div>
+            <div class="artifact">
+              <strong>events.ndjson</strong>
+              <span class="fine">One normalized trace event per line. The UI streams and renders these events.</span>
+            </div>
+            <div class="artifact">
+              <strong>report.json</strong>
+              <span class="fine">Final structured result: modules, tests, pytest summary, repair, cost, checkpoints.</span>
+            </div>
+            <div class="artifact">
+              <strong>control.json</strong>
+              <span class="fine">Cancellation state for a run. The CLI and API can request cancellation.</span>
+            </div>
+            <div class="artifact">
+              <strong>rewind-snapshot.json</strong>
+              <span class="fine">Snapshot data used by fake mode and fallback rewind behavior.</span>
+            </div>
+          </div>
+
+          <div class="callout">
+            A trace is not the same as a report. The <strong>trace</strong> is the timeline of what happened.
+            The <strong>report</strong> is the final answer after the run settles.
+          </div>
+        </section>
+
+        <section id="safety">
+          <div class="section-kicker">6. Safety model</div>
+          <h2>The agent is boxed into test work</h2>
+          <p class="lead">
+            V1 is designed to generate tests, not edit production code. The policy layer checks writes and shell commands.
+            In Claude mode, these checks are enforced through SDK <code>PreToolUse</code> hooks.
+          </p>
+
+          <div class="grid two">
+            <div class="panel green">
+              <h3>Allowed write paths</h3>
+              <ul>
+                <li>Files inside <code>tests/</code></li>
+                <li>Python files named like <code>test_*.py</code></li>
+                <li>Only inside the selected repository</li>
+              </ul>
+            </div>
+            <div class="panel red">
+              <h3>Blocked behavior</h3>
+              <ul>
+                <li>Writing production files such as <code>src/foo.py</code></li>
+                <li>Dangerous commands like <code>rm -rf</code></li>
+                <li>Broad shell commands outside the V1 allowlist</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="diagram-wrap" role="img" aria-label="Policy decision diagram">
+            <svg viewBox="0 0 980 330" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="policyArrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#16211c"/>
+                </marker>
+                <style>
+                  .b{fill:#fffdf8;stroke:#d9d3c8;stroke-width:2;rx:8}
+                  .g{fill:#dff2ea;stroke:#95cbb7}
+                  .r{fill:#f5dddd;stroke:#dfabab}
+                  .a{stroke:#16211c;stroke-width:2;fill:none;marker-end:url(#policyArrow)}
+                  .t{font:700 17px system-ui;fill:#16211c}
+                  .s{font:13px system-ui;fill:#59665f}
+                </style>
+              </defs>
+              <rect x="50" y="105" width="160" height="90" class="b"/>
+              <text x="86" y="142" class="t">Tool call</text>
+              <text x="79" y="166" class="s">Write, Edit, Bash</text>
+              <path d="M210 150 H305" class="a"/>
+
+              <rect x="305" y="80" width="190" height="140" class="b"/>
+              <text x="355" y="120" class="t">Policy hook</text>
+              <text x="336" y="147" class="s">evaluate path or command</text>
+              <text x="345" y="171" class="s">record denial if blocked</text>
+              <path d="M495 150 H590" class="a"/>
+
+              <rect x="590" y="45" width="165" height="90" class="g"/>
+              <text x="646" y="82" class="t">Allow</text>
+              <text x="624" y="106" class="s">test file or safe command</text>
+
+              <rect x="590" y="185" width="165" height="90" class="r"/>
+              <text x="645" y="222" class="t">Deny</text>
+              <text x="623" y="246" class="s">emit trace + report entry</text>
+
+              <path d="M515 140 C545 120 560 90 590 90" class="a"/>
+              <path d="M515 162 C548 182 560 225 590 230" class="a"/>
+
+              <rect x="805" y="185" width="130" height="90" class="b"/>
+              <text x="837" y="222" class="t">Trace</text>
+              <text x="828" y="246" class="s">permission_denied</text>
+              <path d="M755 230 H805" class="a"/>
+            </svg>
+          </div>
+        </section>
+
+        <section id="try-it">
+          <div class="section-kicker">7. Try it for real</div>
+          <h2>A beginner-friendly lab</h2>
+          <p class="lead">
+            Start in fake mode. Then inspect the generated file, report, and trace. Only after that should you try Claude mode.
+          </p>
+
+          <div class="run-lab">
+            <div class="panel green">
+              <h3>Fake run: no API cost</h3>
+              <pre><code>npm install
+npm run build
+npm run cli -- run --repo tests/fixtures/simple-package --agent-mode fake</code></pre>
+              <ul class="checklist">
+                <li><span class="check-icon">1</span><span>Copy the printed <code>run_id</code>.</span></li>
+                <li><span class="check-icon">2</span><span>Open <code>tests/fixtures/simple-package/tests/test_calculator.py</code>.</span></li>
+                <li><span class="check-icon">3</span><span>Inspect the final report with <code>npm run cli -- report --run &lt;run-id&gt;</code>.</span></li>
+                <li><span class="check-icon">4</span><span>Inspect the event stream with <code>npm run cli -- trace --run &lt;run-id&gt;</code>.</span></li>
+              </ul>
+            </div>
+
+            <div class="panel plum">
+              <h3>Claude run: real model path</h3>
+              <pre><code># .env must include:
+ANTHROPIC_API_KEY=your_key_here
+
+npm run cli -- run --repo tests/fixtures/simple-package --agent-mode claude</code></pre>
+              <p>
+                Claude mode uses the real Agent SDK, subagents, checkpointing, hooks, structured output,
+                and API cost tracking. Use it when you want to test actual model behavior.
+              </p>
+              <p class="fine">Tip: add <code>--budget-limit-usd 1</code> for a cautious live test.</p>
+            </div>
+          </div>
+
+          <div class="panel blue" style="margin-top:1rem">
+            <h3>UI test</h3>
+            <pre><code>npm run build:ui
+npm run server
+
+# Browser:
+http://127.0.0.1:4317</code></pre>
+            <p>
+              In the UI, enter a repo path such as
+              <code>D:\PROJECT\safetest-forge\tests\fixtures\simple-package</code>.
+              The server reads the default agent mode from <code>.env</code>, so be aware of whether
+              your environment is set to <code>fake</code> or <code>claude</code>.
+            </p>
+          </div>
+        </section>
+
+        <section id="code-map">
+          <div class="section-kicker">8. Code map</div>
+          <h2>Where to look when you are learning</h2>
+          <p class="lead">
+            Read the project in this order. It follows the run path from the outside toward the core.
+          </p>
+
+          <div class="grid two">
+            <div class="panel">
+              <h3>Start here</h3>
+              <ul>
+                <li><code>README.md</code>: commands and capabilities</li>
+                <li><code>package.json</code>: scripts and dependencies</li>
+                <li><code>src/cli.ts</code>: CLI command definitions</li>
+                <li><code>src/run-service.ts</code>: the main orchestration brain</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Then follow the helpers</h3>
+              <ul>
+                <li><code>src/runtime/python.ts</code>: repo scan, pytest, coverage, failure classification</li>
+                <li><code>src/agent/fake-agent-client.ts</code>: deterministic local agent</li>
+                <li><code>src/agent/claude-agent-client.ts</code>: real SDK integration</li>
+                <li><code>src/policy/policy.ts</code>: write and shell safety</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>UI and API</h3>
+              <ul>
+                <li><code>src/server/app.ts</code>: REST endpoints and SSE stream</li>
+                <li><code>src/ui/App.tsx</code>: run panel, files panel, report panel, trace panel</li>
+                <li><code>scripts/build-ui.mjs</code>: bundles React UI into <code>dist/ui</code></li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Contracts and persistence</h3>
+              <ul>
+                <li><code>src/types.ts</code>: shared TypeScript shapes</li>
+                <li><code>src/trace/normalize.ts</code>: SDK events -> app events</li>
+                <li><code>src/storage/run-store.ts</code>: flat-file persistence</li>
+                <li><code>prompts/*.md</code>: agent instructions</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="glossary">
+          <div class="section-kicker">9. Glossary</div>
+          <h2>Terms without the fog</h2>
+          <p class="lead">Search the terms you see in reports, traces, and code.</p>
+          <input class="search" id="glossarySearch" type="search" placeholder="Search terms like trace, repair, checkpoint">
+
+          <div class="glossary" id="glossaryList">
+            <div class="term"><strong>Run</strong><span>One complete attempt to analyze a repo, generate tests, run pytest, and save a report.</span></div>
+            <div class="term"><strong>Run ID</strong><span>A UUID used to find one run's report, trace, and metadata.</span></div>
+            <div class="term"><strong>Trace event</strong><span>A normalized event such as <code>tool_use</code>, <code>file_changed</code>, or <code>run_finished</code>.</span></div>
+            <div class="term"><strong>Report</strong><span>The final JSON summary of status, generated tests, pytest results, repair, checkpoints, and cost.</span></div>
+            <div class="term"><strong>Fake agent</strong><span>A deterministic local test writer used for development and test coverage without API calls.</span></div>
+            <div class="term"><strong>Claude agent</strong><span>The real Agent SDK client that can inspect files, write tests, and emit rich streaming events.</span></div>
+            <div class="term"><strong>Policy hook</strong><span>A pre-tool-use guard that allows or denies file writes and shell commands.</span></div>
+            <div class="term"><strong>Checkpoint</strong><span>A restore point captured during generation so file changes can be rewound later.</span></div>
+            <div class="term"><strong>Repair loop</strong><span>A small retry step that edits generated tests only when failure looks repairable.</span></div>
+            <div class="term"><strong>SSE</strong><span>Server-sent events. The UI uses it to receive live trace events from the backend.</span></div>
+            <div class="term"><strong>pytest-json-report</strong><span>Optional Python plugin that lets the runtime capture per-test case results.</span></div>
+            <div class="term"><strong>pytest-cov</strong><span>Optional Python plugin that lets the runtime capture line coverage summaries.</span></div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        Built as a local teaching guide for this repository. Start with fake mode, inspect the artifacts, then try Claude mode when you are ready.
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const stepDetails = [
+      {
+        title: "01. Create run",
+        body: "RunService creates a UUID, clamps maxRepairRounds, resolves agent mode, builds RunContext, saves run.json, marks the run active, and emits run_started."
+      },
+      {
+        title: "02. Validate repository",
+        body: "validateRepository checks that the path exists, finds Python files, rejects ambiguous monorepos without --target, chooses a preferred tests directory, and selects up to three modules."
+      },
+      {
+        title: "03. Generate tests",
+        body: "FakeAgentClient writes deterministic fixture tests. ClaudeAgentClient builds prompts, starts the Agent SDK, enables checkpointing, and streams normalized events while writing tests through safe file tools."
+      },
+      {
+        title: "04. Run pytest",
+        body: "runPytest runs pytest only against generated tests. It captures stdout, stderr, exit code, duration, timeout, optional case results, and optional coverage."
+      },
+      {
+        title: "05. Repair or classify",
+        body: "classifyFailure decides whether a failed run looks like a generated-test problem or an environment problem. If repair is allowed, the agent edits only generated tests and pytest runs again."
+      },
+      {
+        title: "06. Persist result",
+        body: "finishRun writes report.json, updates run.json, appends final events, clears the active run marker, and leaves artifacts under .safetest-forge/runs/<run-id>/."
+      }
+    ];
+
+    const stepContainer = document.getElementById("steps");
+    const detail = document.getElementById("stepDetail");
+
+    function renderStep(index) {
+      const item = stepDetails[index];
+      detail.innerHTML = "<h3>" + item.title + "</h3><p>" + item.body + "</p>";
+      document.querySelectorAll(".step").forEach((el) => {
+        el.classList.toggle("active", el.dataset.step === String(index));
+      });
+    }
+
+    if (stepContainer && detail) {
+      stepContainer.addEventListener("click", (event) => {
+        const button = event.target.closest(".step");
+        if (!button) return;
+        renderStep(Number(button.dataset.step));
+      });
+      renderStep(0);
+    }
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const id = tab.dataset.tab;
+        document.querySelectorAll(".tab").forEach((item) => {
+          item.setAttribute("aria-selected", item === tab ? "true" : "false");
+        });
+        document.querySelectorAll(".tab-panel").forEach((panel) => {
+          panel.classList.toggle("active", panel.id === "panel-" + id);
+        });
+      });
+    });
+
+    const search = document.getElementById("glossarySearch");
+    const glossary = document.getElementById("glossaryList");
+    if (search && glossary) {
+      search.addEventListener("input", () => {
+        const query = search.value.trim().toLowerCase();
+        glossary.querySelectorAll(".term").forEach((term) => {
+          term.style.display = term.textContent.toLowerCase().includes(query) ? "" : "none";
+        });
+      });
+    }
+
+    const navLinks = Array.from(document.querySelectorAll(".nav a"));
+    const targets = navLinks
+      .map((link) => document.querySelector(link.getAttribute("href")))
+      .filter(Boolean);
+
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      navLinks.forEach((link) => {
+        link.classList.toggle("active", link.getAttribute("href") === "#" + visible.target.id);
+      });
+    }, { rootMargin: "-20% 0px -65% 0px", threshold: [0.1, 0.4, 0.8] });
+
+    targets.forEach((target) => observer.observe(target));
+  </script>
+</body>
+</html>

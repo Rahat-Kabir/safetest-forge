@@ -104,6 +104,8 @@ Start the local backend on `127.0.0.1:4317`:
 npm run server
 ```
 
+The UI Run Panel lets you choose `fake` or `claude` mode per run, overriding the environment default for that request.
+
 The server writes a local session token file to `.safetest-forge/server.json` and serves:
 - `POST /api/runs`
 - `GET /api/runs/:runId`

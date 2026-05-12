@@ -6,8 +6,12 @@ node_modules/
 dist/
 .safetest-forge/
 .claude/
+.playwright-mcp/
+.uv-cache/
 
 coverage/
+.coverage
+htmlcov/
 *.log
 
 __pycache__/

@@ -5,8 +5,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { App } from "../../src/ui/App.js";
 
-function installFetchMock(handler: (input: RequestInfo | URL) => Promise<any>): void {
-  (globalThis as any).fetch = vi.fn(async (input: RequestInfo | URL) => handler(input));
+function installFetchMock(handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<any>): void {
+  (globalThis as any).fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+    handler(input, init)
+  );
 }
 
 function installEventSourceStub(): void {
@@ -36,6 +38,36 @@ describe("App", () => {
     const toggle = screen.getByRole("button", { name: "Show all" });
     fireEvent.click(toggle);
     expect(screen.getByRole("button", { name: "Compact" })).toBeTruthy();
+  });
+
+  it("sends the selected agent mode when starting a run", async () => {
+    let runInit: RequestInit | undefined;
+    installFetchMock(async (input, init) => {
+      if (String(input).endsWith("/runs")) {
+        runInit = init;
+        return { ok: true, json: async () => ({ runId: "run-123" }) };
+      }
+      return { ok: false, json: async () => ({ error: "ignored" }) };
+    });
+    installEventSourceStub();
+
+    render(<App apiBase="/api" sessionToken="token" />);
+    fireEvent.change(screen.getByLabelText("Repository path"), {
+      target: { value: "/repo" }
+    });
+    fireEvent.change(screen.getByLabelText("Agent mode"), {
+      target: { value: "claude" }
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Start run/i }));
+    });
+
+    expect(JSON.parse(String(runInit?.body))).toMatchObject({
+      repoPath: "/repo",
+      maxRepairRounds: 1,
+      agentMode: "claude"
+    });
   });
 
   it("renders test cases and coverage when present in the report", async () => {

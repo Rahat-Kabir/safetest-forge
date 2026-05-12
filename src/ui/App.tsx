@@ -42,6 +42,8 @@ type FinalReport = {
   };
 };
 
+type AgentMode = "fake" | "claude";
+
 type AppProps = {
   apiBase?: string;
   sessionToken?: string;
@@ -205,6 +207,7 @@ export function App({ apiBase = "/api", sessionToken = "" }: AppProps): React.JS
   const [repoPath, setRepoPath] = useState("");
   const [targetPath, setTargetPath] = useState("");
   const [maxRepairRounds, setMaxRepairRounds] = useState(1);
+  const [agentMode, setAgentMode] = useState<AgentMode>("fake");
   const [runId, setRunId] = useState("");
   const [events, setEvents] = useState<TraceEvent[]>([]);
   const [report, setReport] = useState<FinalReport | null>(null);
@@ -282,7 +285,8 @@ export function App({ apiBase = "/api", sessionToken = "" }: AppProps): React.JS
       body: JSON.stringify({
         repoPath,
         targetPath: targetPath || undefined,
-        maxRepairRounds
+        maxRepairRounds,
+        agentMode
       })
     });
     if (!response.ok) {
@@ -384,6 +388,19 @@ export function App({ apiBase = "/api", sessionToken = "" }: AppProps): React.JS
                   value={maxRepairRounds}
                   onChange={(e) => setMaxRepairRounds(Number.parseInt(e.target.value, 10) || 0)}
                 />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="agent-mode">Agent mode</label>
+                <select
+                  id="agent-mode"
+                  className="form-input"
+                  value={agentMode}
+                  onChange={(e) => setAgentMode(e.target.value as AgentMode)}
+                  disabled={isRunning}
+                >
+                  <option value="fake">Fake (no API key, deterministic)</option>
+                  <option value="claude">Claude (uses ANTHROPIC_API_KEY)</option>
+                </select>
               </div>
               <div className="form-actions">
                 <button
